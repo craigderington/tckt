@@ -1,0 +1,328 @@
+<!DOCTYPE html>
+<html lang="en" xmlns:th="http://www.thymeleaf.org">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title th:text="'tckt – Kitchen Queue (' + ${podName} + '@' + ${nodeName} + ')'">tckt – Kitchen Queue</title>
+
+    <!-- Bootswatch Flatly Theme (Bootstrap 5) -->
+    <link href="https://cdn.jsdelivr.net/npm/bootswatch@5.3.2/dist/flatly/bootstrap.min.css" rel="stylesheet">
+    <!-- Bootstrap Icons -->
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.1/font/bootstrap-icons.css">
+
+    <style>
+        .navbar-brand {
+            font-weight: 700;
+            font-size: 1.5rem;
+            letter-spacing: -0.5px;
+        }
+        .status-badge {
+            font-size: 0.875rem;
+            padding: 0.35em 0.65em;
+        }
+        .order-actions {
+            white-space: nowrap;
+        }
+        .table-responsive {
+            border-radius: 0.375rem;
+            overflow: hidden;
+        }
+        .card {
+            box-shadow: 0 0.125rem 0.25rem rgba(0,0,0,0.075);
+        }
+        .order-item {
+            font-weight: 500;
+        }
+        .pod-node-info {
+            font-size: 0.9rem;
+        }
+        .auto-refresh-badge {
+            animation: pulse 2s ease-in-out infinite;
+        }
+        @keyframes pulse {
+            0%, 100% { opacity: 0.6; }
+            50% { opacity: 1; }
+        }
+    </style>
+</head>
+<body>
+    <!-- Navbar -->
+    <nav class="navbar navbar-expand-lg navbar-dark bg-primary">
+        <div class="container">
+            <a class="navbar-brand" href="/">
+                <i class="bi bi-ticket-perforated"></i> tckt
+            </a>
+            <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navbarNav">
+                <span class="navbar-toggler-icon"></span>
+            </button>
+            <div class="collapse navbar-collapse" id="navbarNav">
+                <ul class="navbar-nav ms-auto">
+                    <li class="nav-item">
+                        <span class="navbar-text pod-node-info">
+                            <i class="bi bi-hdd-rack"></i>
+                            <span th:text="${podName}">unknown-pod</span>
+                            <span class="text-white-50">@</span>
+                            <span th:text="${nodeName}">unknown-node</span>
+                        </span>
+                    </li>
+                </ul>
+            </div>
+        </div>
+    </nav>
+
+    <!-- Main Content -->
+    <div class="container my-4">
+        <!-- Error Alert -->
+        <div id="error-banner" class="alert alert-danger alert-dismissible fade" role="alert">
+            <i class="bi bi-exclamation-triangle-fill"></i>
+            <span id="error-message"></span>
+            <button type="button" class="btn-close" onclick="hideError()"></button>
+        </div>
+
+        <!-- Create Order Card -->
+        <div class="card mb-4">
+            <div class="card-header bg-primary text-white">
+                <h5 class="mb-0">
+                    <i class="bi bi-plus-circle"></i> Create New Order
+                </h5>
+            </div>
+            <div class="card-body">
+                <form id="create-form" class="row g-3">
+                    <div class="col-md-8">
+                        <label for="item-input" class="form-label">Menu Item</label>
+                        <input type="text"
+                               class="form-control form-control-lg"
+                               id="item-input"
+                               placeholder="e.g. Spaghetti Carbonara, Margherita Pizza"
+                               required>
+                    </div>
+                    <div class="col-md-4 d-flex align-items-end">
+                        <button type="submit" class="btn btn-dark btn-lg w-100">
+                            <i class="bi bi-plus-lg"></i> Create Order
+                        </button>
+                    </div>
+                </form>
+            </div>
+        </div>
+
+        <!-- Orders Card -->
+        <div class="card">
+            <div class="card-header bg-primary text-white d-flex justify-content-between align-items-center">
+                <h5 class="mb-0">
+                    <i class="bi bi-list-ul"></i> Kitchen Orders
+                </h5>
+                <div>
+                    <button type="button" class="btn btn-sm btn-light" onclick="loadOrders()">
+                        <i class="bi bi-arrow-clockwise"></i> Refresh
+                    </button>
+                    <span class="badge bg-light text-dark auto-refresh-badge ms-2">
+                        <i class="bi bi-arrow-repeat"></i> Auto-refresh 3s
+                    </span>
+                </div>
+            </div>
+            <div class="card-body p-0">
+                <div class="table-responsive">
+                    <table class="table table-hover table-striped mb-0">
+                        <thead class="table-dark">
+                            <tr>
+                                <th style="width: 60px;">#</th>
+                                <th style="width: 180px;">Created</th>
+                                <th>Item</th>
+                                <th style="width: 140px;">Status</th>
+                                <th style="width: 200px;">Handler</th>
+                                <th style="width: 200px;" class="text-center">Actions</th>
+                            </tr>
+                        </thead>
+                        <tbody id="orders-body">
+                            <tr>
+                                <td colspan="6" class="text-center py-4">
+                                    <div class="spinner-border text-primary" role="status">
+                                        <span class="visually-hidden">Loading...</span>
+                                    </div>
+                                </td>
+                            </tr>
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Bootstrap Bundle with Popper -->
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/js/bootstrap.bundle.min.js"></script>
+
+    <script>
+        const apiBase = '/api/orders';
+
+        function showError(message) {
+            const banner = document.getElementById('error-banner');
+            const messageSpan = document.getElementById('error-message');
+            messageSpan.textContent = message;
+            banner.classList.add('show');
+            setTimeout(() => hideError(), 5000);
+        }
+
+        function hideError() {
+            const banner = document.getElementById('error-banner');
+            banner.classList.remove('show');
+        }
+
+        async function handleResponse(response) {
+            if (!response.ok) {
+                const errorText = await response.text().catch(() => 'Unknown error');
+                console.error(`API Error: ${response.status} ${response.statusText}`, errorText);
+                throw new Error(`${response.status}: ${errorText || response.statusText}`);
+            }
+            return response.json();
+        }
+
+        function getStatusBadge(status) {
+            const badges = {
+                'NEW': '<span class="badge status-badge bg-warning text-white"><i class="bi bi-clock"></i> New</span>',
+                'IN_PROGRESS': '<span class="badge status-badge bg-info text-white"><i class="bi bi-hourglass-split"></i> In Progress</span>',
+                'DONE': '<span class="badge status-badge bg-dark text-white"><i class="bi bi-check-circle"></i> Done</span>'
+            };
+            return badges[status] || status;
+        }
+
+        function formatDateTime(dateTime) {
+            if (!dateTime) return '-';
+            const date = new Date(dateTime);
+            return date.toLocaleString('en-US', {
+                month: 'short',
+                day: 'numeric',
+                hour: '2-digit',
+                minute: '2-digit'
+            });
+        }
+
+        async function loadOrders() {
+            const tbody = document.getElementById('orders-body');
+            try {
+                const res = await fetch(apiBase);
+                const orders = await handleResponse(res);
+
+                if (orders.length === 0) {
+                    tbody.innerHTML = `
+                        <tr>
+                            <td colspan="6" class="text-center text-muted py-4">
+                                <i class="bi bi-inbox" style="font-size: 2rem;"></i>
+                                <p class="mb-0 mt-2">No orders yet. Create your first order above!</p>
+                            </td>
+                        </tr>
+                    `;
+                    return;
+                }
+
+                tbody.innerHTML = '';
+                for (const order of orders) {
+                    const tr = document.createElement('tr');
+
+                    const handled = (order.handledByPod && order.handledByNode)
+                        ? `<small class="text-muted"><i class="bi bi-server"></i> ${order.handledByPod}<br>@${order.handledByNode}</small>`
+                        : '<span class="text-muted">-</span>';
+
+                    const claimBtn = order.status === 'NEW'
+                        ? `<button class="btn btn-sm btn-info" onclick="claimOrder(${order.id})">
+                             <i class="bi bi-hand-thumbs-up"></i> Claim
+                           </button>`
+                        : '';
+
+                    const doneBtn = order.status !== 'DONE'
+                        ? `<button class="btn btn-sm btn-dark" onclick="completeOrder(${order.id})">
+                             <i class="bi bi-check-lg"></i> Done
+                           </button>`
+                        : '';
+
+                    tr.innerHTML = `
+                        <td class="align-middle"><strong>#${order.id}</strong></td>
+                        <td class="align-middle"><small>${formatDateTime(order.createdAt)}</small></td>
+                        <td class="align-middle"><span class="order-item">${order.item}</span></td>
+                        <td class="align-middle">${getStatusBadge(order.status)}</td>
+                        <td class="align-middle">${handled}</td>
+                        <td class="align-middle text-center order-actions">
+                            ${claimBtn}
+                            ${doneBtn}
+                        </td>
+                    `;
+                    tbody.appendChild(tr);
+                }
+            } catch (e) {
+                console.error('Failed to load orders:', e);
+                tbody.innerHTML = `
+                    <tr>
+                        <td colspan="6" class="text-center text-danger py-4">
+                            <i class="bi bi-exclamation-triangle" style="font-size: 2rem;"></i>
+                            <p class="mb-0 mt-2">Failed to load orders. Check console for details.</p>
+                        </td>
+                    </tr>
+                `;
+            }
+        }
+
+        async function claimOrder(id) {
+            try {
+                const res = await fetch(`${apiBase}/${id}/claim`, { method: 'POST' });
+                await handleResponse(res);
+                await loadOrders();
+            } catch (e) {
+                console.error(`Failed to claim order ${id}:`, e);
+                if (e.message.includes('409')) {
+                    showError('Order was modified by another user. Refreshing...');
+                    await loadOrders();
+                } else {
+                    showError(`Failed to claim order: ${e.message}`);
+                }
+            }
+        }
+
+        async function completeOrder(id) {
+            try {
+                const res = await fetch(`${apiBase}/${id}/done`, { method: 'POST' });
+                await handleResponse(res);
+                await loadOrders();
+            } catch (e) {
+                console.error(`Failed to complete order ${id}:`, e);
+                if (e.message.includes('409')) {
+                    showError('Order was modified by another user. Refreshing...');
+                    await loadOrders();
+                } else {
+                    showError(`Failed to complete order: ${e.message}`);
+                }
+            }
+        }
+
+        document.getElementById('create-form').addEventListener('submit', async (e) => {
+            e.preventDefault();
+            const input = document.getElementById('item-input');
+            const item = input.value.trim();
+            if (!item) return;
+
+            try {
+                const res = await fetch(apiBase, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ item })
+                });
+                await handleResponse(res);
+                input.value = '';
+                await loadOrders();
+
+                // Show success feedback
+                input.classList.add('is-valid');
+                setTimeout(() => input.classList.remove('is-valid'), 2000);
+            } catch (e) {
+                console.error('Failed to create order:', e);
+                showError(`Failed to create order: ${e.message}`);
+                input.classList.add('is-invalid');
+                setTimeout(() => input.classList.remove('is-invalid'), 2000);
+            }
+        });
+
+        // Initial load (pod/node metadata already rendered server-side via Thymeleaf)
+        loadOrders();
+        // Auto-refresh orders every 3 seconds
+        setInterval(loadOrders, 3000);
+    </script>
+</body>
+</html>
