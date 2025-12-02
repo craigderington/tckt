@@ -1,0 +1,171 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">    
+    <title>TCKT – Kitchen Ticket Queue (k3s Demo)</title>
+    <style>
+        body {
+            font-family: sans-serif;
+            max-width: 900px;
+            margin: 20px auto;
+        }
+        h1, h2 {
+            margin-bottom: 0.2rem;
+        }
+        .meta {
+            font-size: 0.9rem;
+            color: #555;
+            margin-bottom: 1rem;
+        }
+        .status-NEW { background: #fff9c4; }
+        .status-IN_PROGRESS { background: #c8e6c9; }
+        .status-DONE { background: #e0e0e0; }
+
+        table {
+            width: 100%;
+            border-collapse: collapse;
+            margin-top: 1rem;
+        }
+        th, td {
+            border: 1px solid #ddd;
+            padding: 0.4rem 0.6rem;
+            text-align: left;
+        }
+        th {
+            background: #f5f5f5;
+        }
+        button {
+            cursor: pointer;
+            padding: 0.3rem 0.6rem;
+            margin-right: 0.2rem;
+        }
+        .controls {
+            margin-top: 0.5rem;
+        }
+    </style>
+</head>
+<body>
+<h1>TCKT – Kitchen Ticket Queue (k3s Cluster Demo)</h1>
+<div class="meta" id="meta">Loading pod and node info…</div>
+
+<h2>Create Order</h2>
+<form id="create-form">
+    <label>
+        Menu Item:
+        <input type="text" id="item-input" placeholder="e.g. Spaghetti Carbonara" required>
+    </label>
+    <button type="submit">Create</button>
+</form>
+
+<h2>Orders</h2>
+<div class="controls">
+    <button type="button" onclick="loadOrders()">Refresh</button>
+    <span style="font-size: 0.9rem; color: #555;">(auto-refresh every 3s)</span>
+</div>
+
+<table>
+    <thead>
+    <tr>
+        <th>ID</th>
+        <th>Created</th>
+        <th>Item</th>
+        <th>Status</th>
+        <th>Handled By (pod@node)</th>
+        <th>Actions</th>
+    </tr>
+    </thead>
+    <tbody id="orders-body">
+    <tr><td colspan="6">Loading…</td></tr>
+    </tbody>
+</table>
+
+<script>
+    const apiBase = '/api/orders';
+
+    async function loadMeta() {
+        try {
+            const res = await fetch(apiBase + '/meta');
+            const data = await res.json();
+            document.getElementById('meta').textContent =
+                `You are hitting pod "${data.podName}" on node "${data.nodeName}".`;
+        } catch (e) {
+            document.getElementById('meta').textContent = 'Failed to load pod/node metadata.';
+        }
+    }
+
+    async function loadOrders() {
+        const tbody = document.getElementById('orders-body');
+        try {
+            const res = await fetch(apiBase);
+            const orders = await res.json();
+
+            if (orders.length === 0) {
+                tbody.innerHTML = '<tr><td colspan="6">No orders yet. Create one above!</td></tr>';
+                return;
+            }
+
+            tbody.innerHTML = '';
+            for (const order of orders) {
+                const tr = document.createElement('tr');
+                tr.className = 'status-' + order.status;
+
+                const handled = (order.handledByPod && order.handledByNode)
+                    ? `${order.handledByPod}@${order.handledByNode}`
+                    : '-';
+
+                tr.innerHTML = `
+                    <td>${order.id}</td>
+                    <td>${order.createdAt ?? ''}</td>
+                    <td>${order.item}</td>
+                    <td>${order.status}</td>
+                    <td>${handled}</td>
+                    <td>
+                        ${order.status === 'NEW' ? `
+                            <button onclick="claimOrder(${order.id})">Claim</button>
+                        ` : ''}
+                        ${order.status !== 'DONE' ? `
+                            <button onclick="completeOrder(${order.id})">Done</button>
+                        ` : ''}
+                    </td>
+                `;
+                tbody.appendChild(tr);
+            }
+        } catch (e) {
+            tbody.innerHTML = '<tr><td colspan="6">Failed to load orders.</td></tr>';
+        }
+    }
+
+    async function claimOrder(id) {
+        await fetch(`${apiBase}/${id}/claim`, { method: 'POST' });
+        await loadOrders();
+    }
+
+    async function completeOrder(id) {
+        await fetch(`${apiBase}/${id}/done`, { method: 'POST' });
+        await loadOrders();
+    }
+
+    document.getElementById('create-form').addEventListener('submit', async (e) => {
+        e.preventDefault();
+        const input = document.getElementById('item-input');
+        const item = input.value.trim();
+        if (!item) return;
+
+        await fetch(apiBase, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ item })
+        });
+
+        input.value = '';
+        await loadOrders();
+    });
+
+    // Initial load
+    loadMeta();
+    loadOrders();
+    // Auto-refresh
+    setInterval(loadOrders, 3000);
+</script>
+</body>
+</html>
