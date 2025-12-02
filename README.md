@@ -90,9 +90,9 @@ Open the LoadBalancer external IP in a browser to see pod/node labels rotate as 
 Method	Endpoint	                       Description
 GET	    /api/orders/meta	               Shows which pod/node served the request
 GET	    /api/orders                      List all orders
-POST	  /api/orders                      Create a new order ({"item": "Pizza"})
-POST	  /api/orders/{id}/claim           Mark order as In Progress
-POST	  /api/orders/{id}/done	           Mark order as Done
+POST    /api/orders                      Create a new order ({"item": "Pizza"})
+POST    /api/orders/{id}/claim           Mark order as In Progress
+POST    /api/orders/{id}/done	           Mark order as Done
 GET	    /api/orders/stats                Aggregated stats by pod & node
 ```
 
@@ -102,8 +102,8 @@ The UI consumes all of these automatically.
 ```
 Variable	                     Purpose
 SPRING_DATASOURCE_URL	         JDBC URL for Postgres
-SPRING_DATASOURCE_USERNAME     Database user
-SPRING_DATASOURCE_PASSWORD     Database password
+SPRING_DATASOURCE_USERNAME       Database user
+SPRING_DATASOURCE_PASSWORD       Database password
 POD_NAME	                     Injected via Kubernetes Downward API
 NODE_NAME	                     Injected via Kubernetes Downward API
 ```
