@@ -11,6 +11,16 @@
     <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.1/font/bootstrap-icons.css">
 
     <style>
+        html, body {
+            height: 100%;
+        }
+        body {
+            display: flex;
+            flex-direction: column;
+        }
+        .main-content {
+            flex: 1;
+        }
         .navbar-brand {
             font-weight: 700;
             font-size: 1.5rem;
@@ -56,6 +66,18 @@
                 <span class="navbar-toggler-icon"></span>
             </button>
             <div class="collapse navbar-collapse" id="navbarNav">
+                <ul class="navbar-nav me-auto">
+                    <li class="nav-item">
+                        <a class="nav-link active" href="/">
+                            <i class="bi bi-list-ul"></i> Orders
+                        </a>
+                    </li>
+                    <li class="nav-item">
+                        <a class="nav-link" href="/archived">
+                            <i class="bi bi-archive"></i> Archived
+                        </a>
+                    </li>
+                </ul>
                 <ul class="navbar-nav ms-auto">
                     <li class="nav-item">
                         <span class="navbar-text pod-node-info">
@@ -71,6 +93,7 @@
     </nav>
 
     <!-- Main Content -->
+    <div class="main-content">
     <div class="container my-4">
         <!-- Error Alert -->
         <div id="error-banner" class="alert alert-danger alert-dismissible fade" role="alert">
@@ -156,57 +179,7 @@
                 </div>
             </div>
         </div>
-
-        <!-- Archived Orders Card -->
-        <div class="card mt-4">
-            <div class="card-header bg-secondary text-white d-flex justify-content-between align-items-center">
-                <h5 class="mb-0">
-                    <i class="bi bi-archive"></i> Archived Orders
-                </h5>
-                <button type="button" class="btn btn-sm btn-light" onclick="loadArchivedOrders()">
-                    <i class="bi bi-arrow-clockwise"></i> Refresh
-                </button>
-            </div>
-            <div class="card-body p-0">
-                <div class="table-responsive">
-                    <table class="table table-hover mb-0">
-                        <thead class="table-secondary">
-                            <tr>
-                                <th style="width: 60px;">#</th>
-                                <th style="width: 80px;">Table</th>
-                                <th style="width: 180px;">Created</th>
-                                <th>Item</th>
-                                <th style="width: 200px;">Handler</th>
-                            </tr>
-                        </thead>
-                        <tbody id="archived-orders-body">
-                            <tr>
-                                <td colspan="5" class="text-center py-4">
-                                    <div class="spinner-border text-secondary" role="status">
-                                        <span class="visually-hidden">Loading...</span>
-                                    </div>
-                                </td>
-                            </tr>
-                        </tbody>
-                    </table>
-                </div>
-            </div>
-            <div class="card-footer bg-light">
-                <div class="d-flex justify-content-between align-items-center">
-                    <div>
-                        <span id="archived-info" class="text-muted small">Page 1 of 1</span>
-                    </div>
-                    <div>
-                        <button class="btn btn-sm btn-outline-secondary" id="prev-page-btn" onclick="previousPage()" disabled>
-                            <i class="bi bi-chevron-left"></i> Previous
-                        </button>
-                        <button class="btn btn-sm btn-outline-secondary ms-2" id="next-page-btn" onclick="nextPage()" disabled>
-                            Next <i class="bi bi-chevron-right"></i>
-                        </button>
-                    </div>
-                </div>
-            </div>
-        </div>
+    </div>
     </div>
 
     <!-- Footer -->
@@ -264,7 +237,7 @@
             <div class="row">
                 <div class="col-12 text-center">
                     <p class="small text-white-50 mb-0">
-                        Built with <i class="bi bi-heart-fill text-danger"></i> using Spring Boot 3 &amp; Kubernetes
+                        Built with <i class="bi bi-heart-fill text-danger"></i> using Java, Spring Boot 3 &amp; k3s
                         <span class="mx-2">|</span>
                         Pod: <span th:text="${podName}">unknown-pod</span> @ <span th:text="${nodeName}">unknown-node</span>
                     </p>
@@ -278,8 +251,6 @@
 
     <script>
         const apiBase = '/api/orders';
-        let currentArchivedPage = 0;
-        const archivedPageSize = 20;
 
         function showError(message) {
             const banner = document.getElementById('error-banner');
@@ -432,7 +403,6 @@
                 const res = await fetch(`${apiBase}/${id}/archive`, { method: 'POST' });
                 await handleResponse(res);
                 await loadOrders();
-                await loadArchivedOrders();
             } catch (e) {
                 console.error(`Failed to archive order ${id}:`, e);
                 if (e.message.includes('409')) {
@@ -444,79 +414,6 @@
                     showError(`Failed to archive order: ${e.message}`);
                 }
             }
-        }
-
-        async function loadArchivedOrders(page = currentArchivedPage) {
-            const tbody = document.getElementById('archived-orders-body');
-            try {
-                const res = await fetch(`${apiBase}/archived?page=${page}&size=${archivedPageSize}`);
-                const data = await handleResponse(res);
-
-                if (data.content.length === 0 && page === 0) {
-                    tbody.innerHTML = `
-                        <tr>
-                            <td colspan="5" class="text-center text-muted py-4">
-                                <i class="bi bi-archive" style="font-size: 2rem;"></i>
-                                <p class="mb-0 mt-2">No archived orders yet.</p>
-                            </td>
-                        </tr>
-                    `;
-                    document.getElementById('archived-info').textContent = 'No archived orders';
-                    document.getElementById('prev-page-btn').disabled = true;
-                    document.getElementById('next-page-btn').disabled = true;
-                    return;
-                }
-
-                tbody.innerHTML = '';
-                for (const order of data.content) {
-                    const tr = document.createElement('tr');
-
-                    const handled = (order.handledByPod && order.handledByNode)
-                        ? `<small class="text-muted"><i class="bi bi-server"></i> ${order.handledByPod}<br>@${order.handledByNode}</small>`
-                        : '<span class="text-muted">-</span>';
-
-                    tr.innerHTML = `
-                        <td class="align-middle"><strong>#${order.id}</strong></td>
-                        <td class="align-middle"><strong>${order.tableNumber || '-'}</strong></td>
-                        <td class="align-middle"><small>${formatDateTime(order.createdAt)}</small></td>
-                        <td class="align-middle"><span class="order-item">${order.item}</span></td>
-                        <td class="align-middle">${handled}</td>
-                    `;
-                    tbody.appendChild(tr);
-                }
-
-                // Update pagination info
-                currentArchivedPage = data.number;
-                const totalPages = data.totalPages;
-                const currentPageDisplay = data.number + 1;
-                document.getElementById('archived-info').textContent =
-                    `Page ${currentPageDisplay} of ${totalPages} (${data.totalElements} total)`;
-
-                // Update pagination buttons
-                document.getElementById('prev-page-btn').disabled = data.first;
-                document.getElementById('next-page-btn').disabled = data.last;
-
-            } catch (e) {
-                console.error('Failed to load archived orders:', e);
-                tbody.innerHTML = `
-                    <tr>
-                        <td colspan="5" class="text-center text-danger py-4">
-                            <i class="bi bi-exclamation-triangle" style="font-size: 2rem;"></i>
-                            <p class="mb-0 mt-2">Failed to load archived orders.</p>
-                        </td>
-                    </tr>
-                `;
-            }
-        }
-
-        function previousPage() {
-            if (currentArchivedPage > 0) {
-                loadArchivedOrders(currentArchivedPage - 1);
-            }
-        }
-
-        function nextPage() {
-            loadArchivedOrders(currentArchivedPage + 1);
         }
 
         document.getElementById('create-form').addEventListener('submit', async (e) => {
@@ -559,7 +456,6 @@
 
         // Initial load (pod/node metadata already rendered server-side via Thymeleaf)
         loadOrders();
-        loadArchivedOrders();
         // Auto-refresh orders every 3 seconds
         setInterval(loadOrders, 3000);
     </script>

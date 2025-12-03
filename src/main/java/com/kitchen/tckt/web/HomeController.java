@@ -24,4 +24,11 @@ public class HomeController {
         model.addAttribute("nodeName", nodeName);
         return "index";
     }
+
+    @GetMapping("/archived")
+    public String archived(Model model) {
+        model.addAttribute("podName", podName);
+        model.addAttribute("nodeName", nodeName);
+        return "archived";
+    }
 }
