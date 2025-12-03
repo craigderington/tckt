@@ -9,6 +9,9 @@ import io.swagger.v3.oas.annotations.responses.ApiResponse;
 import io.swagger.v3.oas.annotations.responses.ApiResponses;
 import io.swagger.v3.oas.annotations.tags.Tag;
 import org.springframework.beans.factory.annotation.Value;
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.PageRequest;
+import org.springframework.data.domain.Pageable;
 import org.springframework.http.HttpStatus;
 import org.springframework.transaction.annotation.Transactional;
 import org.springframework.web.bind.annotation.*;
@@ -37,10 +40,10 @@ public class KitchenOrderController {
     }
 
     @GetMapping
-    @Operation(summary = "List all orders", description = "Retrieve all kitchen orders sorted by creation date (newest first)")
-    @ApiResponse(responseCode = "200", description = "Successfully retrieved list of orders")
+    @Operation(summary = "List active orders", description = "Retrieve all non-archived kitchen orders sorted by creation date (newest first)")
+    @ApiResponse(responseCode = "200", description = "Successfully retrieved list of active orders")
     public List<KitchenOrder> list() {
-        return repository.findAllByOrderByCreatedAtDesc();
+        return repository.findByArchivedFalseOrderByCreatedAtDesc();
     }
 
     @PostMapping
@@ -54,9 +57,13 @@ public class KitchenOrderController {
         if (request.getItem() == null || request.getItem().isBlank()) {
             throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "Item is required");
         }
+        if (request.getTableNumber() == null) {
+            throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "Table number is required");
+        }
 
         KitchenOrder order = new KitchenOrder();
         order.setItem(request.getItem().trim());
+        order.setTableNumber(request.getTableNumber());
         order.setStatus(OrderStatus.NEW);
 
         return repository.save(order);
@@ -103,6 +110,39 @@ public class KitchenOrderController {
             order.setHandledByNode(nodeName);
         }
         return repository.save(order);
+    }
+
+    @PostMapping("/{id}/archive")
+    @Transactional
+    @Operation(summary = "Archive an order", description = "Archive a completed order to remove it from active view")
+    @ApiResponses(value = {
+        @ApiResponse(responseCode = "200", description = "Order archived successfully"),
+        @ApiResponse(responseCode = "404", description = "Order not found"),
+        @ApiResponse(responseCode = "400", description = "Only completed orders can be archived"),
+        @ApiResponse(responseCode = "409", description = "Optimistic locking conflict - order was modified by another pod")
+    })
+    public KitchenOrder archive(@Parameter(description = "Order ID") @PathVariable Long id) {
+        KitchenOrder order = repository.findById(id)
+                .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND));
+
+        if (order.getStatus() != OrderStatus.DONE) {
+            throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "Only completed orders can be archived");
+        }
+
+        order.setArchived(true);
+        return repository.save(order);
+    }
+
+    @GetMapping("/archived")
+    @Operation(summary = "List archived orders", description = "Retrieve archived orders with pagination")
+    @ApiResponses(value = {
+        @ApiResponse(responseCode = "200", description = "Successfully retrieved archived orders")
+    })
+    public Page<KitchenOrder> listArchived(
+            @Parameter(description = "Page number (0-indexed)") @RequestParam(defaultValue = "0") int page,
+            @Parameter(description = "Page size") @RequestParam(defaultValue = "20") int size) {
+        Pageable pageable = PageRequest.of(page, size);
+        return repository.findByArchivedTrueOrderByCreatedAtDesc(pageable);
     }
 
     @GetMapping("/meta")
@@ -152,6 +192,7 @@ public class KitchenOrderController {
 
     public static class CreateOrderRequest {
         private String item;
+        private Integer tableNumber;
 
         public String getItem() {
             return item;
@@ -159,6 +200,14 @@ public class KitchenOrderController {
 
         public void setItem(String item) {
             this.item = item;
+        }
+
+        public Integer getTableNumber() {
+            return tableNumber;
+        }
+
+        public void setTableNumber(Integer tableNumber) {
+            this.tableNumber = tableNumber;
         }
     }
 }

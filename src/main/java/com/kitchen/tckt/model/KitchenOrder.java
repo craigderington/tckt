@@ -1,7 +1,7 @@
 package com.kitchen.tckt.model;
 
 import jakarta.persistence.*;
-import java.time.LocalDateTime;
+import java.time.ZonedDateTime;
 
 @Entity
 @Table(name = "orders")
@@ -15,6 +15,7 @@ public class KitchenOrder {
     private Long version;
 
     private String item;
+    private Integer tableNumber;
 
     @Enumerated(EnumType.STRING)
     private OrderStatus status;
@@ -22,12 +23,13 @@ public class KitchenOrder {
     private String handledByPod;
     private String handledByNode;
 
-    private LocalDateTime createdAt;
+    private ZonedDateTime createdAt;
+    private boolean archived = false;
 
     @PrePersist
     public void prePersist() {
         if (createdAt == null) {
-            createdAt = LocalDateTime.now();
+            createdAt = ZonedDateTime.now();
         }
         if (status == null) {
             status = OrderStatus.NEW;
@@ -48,6 +50,10 @@ public class KitchenOrder {
         return item;
     }
 
+    public Integer getTableNumber() {
+        return tableNumber;
+    }
+
     public OrderStatus getStatus() {
         return status;
     }
@@ -60,8 +66,12 @@ public class KitchenOrder {
         return handledByNode;
     }
 
-    public LocalDateTime getCreatedAt() {
+    public ZonedDateTime getCreatedAt() {
         return createdAt;
+    }
+
+    public boolean isArchived() {
+        return archived;
     }
 
     public void setId(Long id) {
@@ -76,6 +86,10 @@ public class KitchenOrder {
         this.item = item;
     }
 
+    public void setTableNumber(Integer tableNumber) {
+        this.tableNumber = tableNumber;
+    }
+
     public void setStatus(OrderStatus status) {
         this.status = status;
     }
@@ -88,8 +102,12 @@ public class KitchenOrder {
         this.handledByNode = handledByNode;
     }
 
-    public void setCreatedAt(LocalDateTime createdAt) {
+    public void setCreatedAt(ZonedDateTime createdAt) {
         this.createdAt = createdAt;
+    }
+
+    public void setArchived(boolean archived) {
+        this.archived = archived;
     }
 }
 

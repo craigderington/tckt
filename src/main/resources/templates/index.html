@@ -50,7 +50,7 @@
     <nav class="navbar navbar-expand-lg navbar-dark bg-primary">
         <div class="container">
             <a class="navbar-brand" href="/">
-                <i class="bi bi-ticket-perforated"></i> tckt
+                🍽️ tckt
             </a>
             <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navbarNav">
                 <span class="navbar-toggler-icon"></span>
@@ -88,7 +88,16 @@
             </div>
             <div class="card-body">
                 <form id="create-form" class="row g-3">
-                    <div class="col-md-8">
+                    <div class="col-md-2">
+                        <label for="table-input" class="form-label">Table #</label>
+                        <input type="number"
+                               class="form-control form-control-lg"
+                               id="table-input"
+                               placeholder="1"
+                               min="1"
+                               required>
+                    </div>
+                    <div class="col-md-6">
                         <label for="item-input" class="form-label">Menu Item</label>
                         <input type="text"
                                class="form-control form-control-lg"
@@ -126,6 +135,7 @@
                         <thead class="table-dark">
                             <tr>
                                 <th style="width: 60px;">#</th>
+                                <th style="width: 80px;">Table</th>
                                 <th style="width: 180px;">Created</th>
                                 <th>Item</th>
                                 <th style="width: 140px;">Status</th>
@@ -135,7 +145,7 @@
                         </thead>
                         <tbody id="orders-body">
                             <tr>
-                                <td colspan="6" class="text-center py-4">
+                                <td colspan="7" class="text-center py-4">
                                     <div class="spinner-border text-primary" role="status">
                                         <span class="visually-hidden">Loading...</span>
                                     </div>
@@ -146,13 +156,130 @@
                 </div>
             </div>
         </div>
+
+        <!-- Archived Orders Card -->
+        <div class="card mt-4">
+            <div class="card-header bg-secondary text-white d-flex justify-content-between align-items-center">
+                <h5 class="mb-0">
+                    <i class="bi bi-archive"></i> Archived Orders
+                </h5>
+                <button type="button" class="btn btn-sm btn-light" onclick="loadArchivedOrders()">
+                    <i class="bi bi-arrow-clockwise"></i> Refresh
+                </button>
+            </div>
+            <div class="card-body p-0">
+                <div class="table-responsive">
+                    <table class="table table-hover mb-0">
+                        <thead class="table-secondary">
+                            <tr>
+                                <th style="width: 60px;">#</th>
+                                <th style="width: 80px;">Table</th>
+                                <th style="width: 180px;">Created</th>
+                                <th>Item</th>
+                                <th style="width: 200px;">Handler</th>
+                            </tr>
+                        </thead>
+                        <tbody id="archived-orders-body">
+                            <tr>
+                                <td colspan="5" class="text-center py-4">
+                                    <div class="spinner-border text-secondary" role="status">
+                                        <span class="visually-hidden">Loading...</span>
+                                    </div>
+                                </td>
+                            </tr>
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+            <div class="card-footer bg-light">
+                <div class="d-flex justify-content-between align-items-center">
+                    <div>
+                        <span id="archived-info" class="text-muted small">Page 1 of 1</span>
+                    </div>
+                    <div>
+                        <button class="btn btn-sm btn-outline-secondary" id="prev-page-btn" onclick="previousPage()" disabled>
+                            <i class="bi bi-chevron-left"></i> Previous
+                        </button>
+                        <button class="btn btn-sm btn-outline-secondary ms-2" id="next-page-btn" onclick="nextPage()" disabled>
+                            Next <i class="bi bi-chevron-right"></i>
+                        </button>
+                    </div>
+                </div>
+            </div>
+        </div>
     </div>
+
+    <!-- Footer -->
+    <footer class="bg-dark text-white mt-5">
+        <div class="container py-4">
+            <div class="row">
+                <div class="col-md-4 mb-3 mb-md-0">
+                    <h6 class="text-uppercase mb-3">🍽️ tckt</h6>
+                    <p class="small text-white-50">
+                        Distributed kitchen order queue system for Kubernetes demonstrations.
+                    </p>
+                </div>
+                <div class="col-md-4 mb-3 mb-md-0">
+                    <h6 class="text-uppercase mb-3">Resources</h6>
+                    <ul class="list-unstyled small">
+                        <li class="mb-2">
+                            <a href="https://github.com/craigderington/tckt" class="text-white-50 text-decoration-none" target="_blank">
+                                <i class="bi bi-github"></i> GitHub Repository
+                            </a>
+                        </li>
+                        <li class="mb-2">
+                            <a href="/swagger-ui.html" class="text-white-50 text-decoration-none" target="_blank">
+                                <i class="bi bi-file-code"></i> API Documentation
+                            </a>
+                        </li>
+                        <li class="mb-2">
+                            <a href="/h2-console" class="text-white-50 text-decoration-none" target="_blank">
+                                <i class="bi bi-database"></i> H2 Console (Test Mode)
+                            </a>
+                        </li>
+                    </ul>
+                </div>
+                <div class="col-md-4">
+                    <h6 class="text-uppercase mb-3">Support</h6>
+                    <ul class="list-unstyled small">
+                        <li class="mb-2">
+                            <a href="https://github.com/craigderington/tckt/issues" class="text-white-50 text-decoration-none" target="_blank">
+                                <i class="bi bi-bug"></i> Report Issues
+                            </a>
+                        </li>
+                        <li class="mb-2">
+                            <a href="https://github.com/craigderington/tckt/discussions" class="text-white-50 text-decoration-none" target="_blank">
+                                <i class="bi bi-chat-dots"></i> Discussions
+                            </a>
+                        </li>
+                        <li class="mb-2">
+                            <a href="https://kubernetes.io/docs/" class="text-white-50 text-decoration-none" target="_blank">
+                                <i class="bi bi-book"></i> Kubernetes Docs
+                            </a>
+                        </li>
+                    </ul>
+                </div>
+            </div>
+            <hr class="border-secondary my-3">
+            <div class="row">
+                <div class="col-12 text-center">
+                    <p class="small text-white-50 mb-0">
+                        Built with <i class="bi bi-heart-fill text-danger"></i> using Spring Boot 3 &amp; Kubernetes
+                        <span class="mx-2">|</span>
+                        Pod: <span th:text="${podName}">unknown-pod</span> @ <span th:text="${nodeName}">unknown-node</span>
+                    </p>
+                </div>
+            </div>
+        </div>
+    </footer>
 
     <!-- Bootstrap Bundle with Popper -->
     <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/js/bootstrap.bundle.min.js"></script>
 
     <script>
         const apiBase = '/api/orders';
+        let currentArchivedPage = 0;
+        const archivedPageSize = 20;
 
         function showError(message) {
             const banner = document.getElementById('error-banner');
@@ -205,7 +332,7 @@
                 if (orders.length === 0) {
                     tbody.innerHTML = `
                         <tr>
-                            <td colspan="6" class="text-center text-muted py-4">
+                            <td colspan="7" class="text-center text-muted py-4">
                                 <i class="bi bi-inbox" style="font-size: 2rem;"></i>
                                 <p class="mb-0 mt-2">No orders yet. Create your first order above!</p>
                             </td>
@@ -234,8 +361,15 @@
                            </button>`
                         : '';
 
+                    const archiveBtn = order.status === 'DONE'
+                        ? `<button class="btn btn-sm btn-secondary" onclick="archiveOrder(${order.id})">
+                             <i class="bi bi-archive"></i> Archive
+                           </button>`
+                        : '';
+
                     tr.innerHTML = `
                         <td class="align-middle"><strong>#${order.id}</strong></td>
+                        <td class="align-middle"><strong>${order.tableNumber || '-'}</strong></td>
                         <td class="align-middle"><small>${formatDateTime(order.createdAt)}</small></td>
                         <td class="align-middle"><span class="order-item">${order.item}</span></td>
                         <td class="align-middle">${getStatusBadge(order.status)}</td>
@@ -243,6 +377,7 @@
                         <td class="align-middle text-center order-actions">
                             ${claimBtn}
                             ${doneBtn}
+                            ${archiveBtn}
                         </td>
                     `;
                     tbody.appendChild(tr);
@@ -251,7 +386,7 @@
                 console.error('Failed to load orders:', e);
                 tbody.innerHTML = `
                     <tr>
-                        <td colspan="6" class="text-center text-danger py-4">
+                        <td colspan="7" class="text-center text-danger py-4">
                             <i class="bi bi-exclamation-triangle" style="font-size: 2rem;"></i>
                             <p class="mb-0 mt-2">Failed to load orders. Check console for details.</p>
                         </td>
@@ -292,35 +427,139 @@
             }
         }
 
+        async function archiveOrder(id) {
+            try {
+                const res = await fetch(`${apiBase}/${id}/archive`, { method: 'POST' });
+                await handleResponse(res);
+                await loadOrders();
+                await loadArchivedOrders();
+            } catch (e) {
+                console.error(`Failed to archive order ${id}:`, e);
+                if (e.message.includes('409')) {
+                    showError('Order was modified by another user. Refreshing...');
+                    await loadOrders();
+                } else if (e.message.includes('400')) {
+                    showError('Only completed orders can be archived.');
+                } else {
+                    showError(`Failed to archive order: ${e.message}`);
+                }
+            }
+        }
+
+        async function loadArchivedOrders(page = currentArchivedPage) {
+            const tbody = document.getElementById('archived-orders-body');
+            try {
+                const res = await fetch(`${apiBase}/archived?page=${page}&size=${archivedPageSize}`);
+                const data = await handleResponse(res);
+
+                if (data.content.length === 0 && page === 0) {
+                    tbody.innerHTML = `
+                        <tr>
+                            <td colspan="5" class="text-center text-muted py-4">
+                                <i class="bi bi-archive" style="font-size: 2rem;"></i>
+                                <p class="mb-0 mt-2">No archived orders yet.</p>
+                            </td>
+                        </tr>
+                    `;
+                    document.getElementById('archived-info').textContent = 'No archived orders';
+                    document.getElementById('prev-page-btn').disabled = true;
+                    document.getElementById('next-page-btn').disabled = true;
+                    return;
+                }
+
+                tbody.innerHTML = '';
+                for (const order of data.content) {
+                    const tr = document.createElement('tr');
+
+                    const handled = (order.handledByPod && order.handledByNode)
+                        ? `<small class="text-muted"><i class="bi bi-server"></i> ${order.handledByPod}<br>@${order.handledByNode}</small>`
+                        : '<span class="text-muted">-</span>';
+
+                    tr.innerHTML = `
+                        <td class="align-middle"><strong>#${order.id}</strong></td>
+                        <td class="align-middle"><strong>${order.tableNumber || '-'}</strong></td>
+                        <td class="align-middle"><small>${formatDateTime(order.createdAt)}</small></td>
+                        <td class="align-middle"><span class="order-item">${order.item}</span></td>
+                        <td class="align-middle">${handled}</td>
+                    `;
+                    tbody.appendChild(tr);
+                }
+
+                // Update pagination info
+                currentArchivedPage = data.number;
+                const totalPages = data.totalPages;
+                const currentPageDisplay = data.number + 1;
+                document.getElementById('archived-info').textContent =
+                    `Page ${currentPageDisplay} of ${totalPages} (${data.totalElements} total)`;
+
+                // Update pagination buttons
+                document.getElementById('prev-page-btn').disabled = data.first;
+                document.getElementById('next-page-btn').disabled = data.last;
+
+            } catch (e) {
+                console.error('Failed to load archived orders:', e);
+                tbody.innerHTML = `
+                    <tr>
+                        <td colspan="5" class="text-center text-danger py-4">
+                            <i class="bi bi-exclamation-triangle" style="font-size: 2rem;"></i>
+                            <p class="mb-0 mt-2">Failed to load archived orders.</p>
+                        </td>
+                    </tr>
+                `;
+            }
+        }
+
+        function previousPage() {
+            if (currentArchivedPage > 0) {
+                loadArchivedOrders(currentArchivedPage - 1);
+            }
+        }
+
+        function nextPage() {
+            loadArchivedOrders(currentArchivedPage + 1);
+        }
+
         document.getElementById('create-form').addEventListener('submit', async (e) => {
             e.preventDefault();
-            const input = document.getElementById('item-input');
-            const item = input.value.trim();
-            if (!item) return;
+            const itemInput = document.getElementById('item-input');
+            const tableInput = document.getElementById('table-input');
+            const item = itemInput.value.trim();
+            const tableNumber = parseInt(tableInput.value);
+            if (!item || !tableNumber) return;
 
             try {
                 const res = await fetch(apiBase, {
                     method: 'POST',
                     headers: { 'Content-Type': 'application/json' },
-                    body: JSON.stringify({ item })
+                    body: JSON.stringify({ item, tableNumber })
                 });
                 await handleResponse(res);
-                input.value = '';
+                itemInput.value = '';
+                tableInput.value = '';
                 await loadOrders();
 
                 // Show success feedback
-                input.classList.add('is-valid');
-                setTimeout(() => input.classList.remove('is-valid'), 2000);
+                itemInput.classList.add('is-valid');
+                tableInput.classList.add('is-valid');
+                setTimeout(() => {
+                    itemInput.classList.remove('is-valid');
+                    tableInput.classList.remove('is-valid');
+                }, 2000);
             } catch (e) {
                 console.error('Failed to create order:', e);
                 showError(`Failed to create order: ${e.message}`);
-                input.classList.add('is-invalid');
-                setTimeout(() => input.classList.remove('is-invalid'), 2000);
+                itemInput.classList.add('is-invalid');
+                tableInput.classList.add('is-invalid');
+                setTimeout(() => {
+                    itemInput.classList.remove('is-invalid');
+                    tableInput.classList.remove('is-invalid');
+                }, 2000);
             }
         });
 
         // Initial load (pod/node metadata already rendered server-side via Thymeleaf)
         loadOrders();
+        loadArchivedOrders();
         // Auto-refresh orders every 3 seconds
         setInterval(loadOrders, 3000);
     </script>
